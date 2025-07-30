@@ -54,3 +54,4 @@ Thumbs.db
 *.xml
 *.html
 ignore/
+logs*/
