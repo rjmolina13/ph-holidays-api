@@ -87,10 +87,11 @@ def scrape_holidays(url):
             
             session.headers.update(headers)
             
+            # Disable SSL verification for all connections to avoid certificate issues
+            session.verify = False
+            
             if proxy:
                 session.proxies.update(proxy)
-                # Disable SSL verification for proxy connections
-                session.verify = False
                 print(f"Trying with proxy: {proxy['http']}")
             else:
                 print("Trying without proxy...")
