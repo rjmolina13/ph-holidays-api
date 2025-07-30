@@ -13,6 +13,9 @@ import os
 import time
 import random
 import itertools
+import urllib3
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 def get_proxy_list():
     """
@@ -32,6 +35,9 @@ def scrape_holidays(url):
     """
     Scrape holidays from the given URL with enhanced anti-detection measures and proxy support
     """
+    # Disable SSL warnings for proxy connections
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    
     # List of user agents to rotate
     user_agents = [
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -52,6 +58,16 @@ def scrape_holidays(url):
             # Create a new session for each attempt
             session = requests.Session()
             
+            # Configure retry strategy
+            retry_strategy = Retry(
+                total=2,
+                backoff_factor=1,
+                status_forcelist=[429, 500, 502, 503, 504],
+            )
+            adapter = HTTPAdapter(max_retries=retry_strategy)
+            session.mount("http://", adapter)
+            session.mount("https://", adapter)
+            
             # Enhanced headers to mimic real browser behavior
             headers = {
                 'User-Agent': random.choice(user_agents),
@@ -65,25 +81,28 @@ def scrape_holidays(url):
                 'Sec-Fetch-Mode': 'navigate',
                 'Sec-Fetch-Site': 'none',
                 'Sec-Fetch-User': '?1',
-                'Cache-Control': 'max-age=0'
+                'Cache-Control': 'max-age=0',
+                'Referer': 'https://www.google.com/'
             }
             
             session.headers.update(headers)
             
             if proxy:
                 session.proxies.update(proxy)
+                # Disable SSL verification for proxy connections
+                session.verify = False
                 print(f"Trying with proxy: {proxy['http']}")
             else:
                 print("Trying without proxy...")
             
             # Add random delay to avoid being flagged as bot
-            delay = random.uniform(1, 3)
+            delay = random.uniform(2, 5)
             print(f"Waiting {delay:.1f} seconds before request...")
             time.sleep(delay)
             
             # Make the request with shorter timeout for proxy attempts
-            timeout = 15 if proxy else 30
-            response = session.get(url, timeout=timeout)
+            timeout = 20 if proxy else 30
+            response = session.get(url, timeout=timeout, allow_redirects=True)
             response.raise_for_status()
             
             print(f"Successfully connected {'with proxy' if proxy else 'without proxy'}!")
