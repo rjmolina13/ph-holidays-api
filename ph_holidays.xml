@@ -1,0 +1,129 @@
+<?xml version='1.0' encoding='utf-8'?>
+<holidays year="2025" country="Philippines" last_updated="2025-07-30T12:36:20.210509">
+  <holiday>
+    <date>1 Jan</date>
+    <day>Wed</day>
+    <name>New Year's Day</name>
+    <mm_dd>01-01</mm_dd>
+  </holiday>
+  <holiday>
+    <date>29 Jan</date>
+    <day>Wed</day>
+    <name>Chinese New Year</name>
+    <mm_dd>01-29</mm_dd>
+  </holiday>
+  <holiday>
+    <date>31 Mar</date>
+    <day>Mon</day>
+    <name>Eidul Fitr</name>
+    <mm_dd>03-31</mm_dd>
+  </holiday>
+  <holiday>
+    <date>9 Apr</date>
+    <day>Wed</day>
+    <name>Day of Valor</name>
+    <mm_dd>04-09</mm_dd>
+  </holiday>
+  <holiday>
+    <date>17 Apr</date>
+    <day>Thu</day>
+    <name>Maundy Thursday</name>
+    <mm_dd>04-17</mm_dd>
+  </holiday>
+  <holiday>
+    <date>18 Apr</date>
+    <day>Fri</day>
+    <name>Good Friday</name>
+    <mm_dd>04-18</mm_dd>
+  </holiday>
+  <holiday>
+    <date>19 Apr</date>
+    <day>Sat</day>
+    <name>Black Saturday</name>
+    <mm_dd>04-19</mm_dd>
+  </holiday>
+  <holiday>
+    <date>1 May</date>
+    <day>Thu</day>
+    <name>Labor Day</name>
+    <mm_dd>05-01</mm_dd>
+  </holiday>
+  <holiday>
+    <date>6 Jun</date>
+    <day>Fri</day>
+    <name>Eidul Adha</name>
+    <mm_dd>06-06</mm_dd>
+  </holiday>
+  <holiday>
+    <date>12 Jun</date>
+    <day>Thu</day>
+    <name>Independence Day</name>
+    <mm_dd>06-12</mm_dd>
+  </holiday>
+  <holiday>
+    <date>27 Jul</date>
+    <day>Sun</day>
+    <name>Founding Anniversary of Iglesia ni Cristo</name>
+    <mm_dd>07-27</mm_dd>
+  </holiday>
+  <holiday>
+    <date>21 Aug</date>
+    <day>Thu</day>
+    <name>Ninoy Aquino Day</name>
+    <mm_dd>08-21</mm_dd>
+  </holiday>
+  <holiday>
+    <date>25 Aug</date>
+    <day>Mon</day>
+    <name>National Heroes Day</name>
+    <mm_dd>08-25</mm_dd>
+  </holiday>
+  <holiday>
+    <date>31 Oct</date>
+    <day>Fri</day>
+    <name>All Saints' Day Holiday</name>
+    <mm_dd>10-31</mm_dd>
+  </holiday>
+  <holiday>
+    <date>1 Nov</date>
+    <day>Sat</day>
+    <name>All Saints' Day</name>
+    <mm_dd>11-01</mm_dd>
+  </holiday>
+  <holiday>
+    <date>30 Nov</date>
+    <day>Sun</day>
+    <name>Bonifacio Day</name>
+    <mm_dd>11-30</mm_dd>
+  </holiday>
+  <holiday>
+    <date>8 Dec</date>
+    <day>Mon</day>
+    <name>Immaculate Conception</name>
+    <mm_dd>12-08</mm_dd>
+  </holiday>
+  <holiday>
+    <date>24 Dec</date>
+    <day>Wed</day>
+    <name>Christmas Holiday</name>
+    <mm_dd>12-24</mm_dd>
+  </holiday>
+  <holiday>
+    <date>25 Dec</date>
+    <day>Thu</day>
+    <name>Christmas Day</name>
+    <mm_dd>12-25</mm_dd>
+  </holiday>
+  <holiday>
+    <date>30 Dec</date>
+    <day>Tue</day>
+    <name>Rizal Day</name>
+    <mm_dd>12-30</mm_dd>
+  </holiday>
+  <holiday>
+    <date>31 Dec</date>
+    <day>Wed</day>
+    <name>New Year's Eve</name>
+    <mm_dd>12-31</mm_dd>
+  </holiday>
+</holidays>

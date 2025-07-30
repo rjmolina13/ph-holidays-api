@@ -1,0 +1,72 @@
+name: Update Philippines Holidays
+
+on:
+  schedule:
+    # Run daily at 6 AM UTC (2 PM PHT)
+    - cron: '0 6 * * *'
+  workflow_dispatch: # Allow manual trigger
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'scrape_holidays.py'
+      - '.github/workflows/update-holidays.yml'
+
+jobs:
+  update-holidays:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Scrape holidays data
+      env:
+        HOLIDAYS_URL: 'https://publicholidays.ph/2025-dates/'
+        OUTPUT_FILE: 'ph_holidays.xml'
+      run: |
+        python scrape_holidays.py
+        
+    - name: Check if XML file was created/updated
+      run: |
+        if [ -f "ph_holidays.xml" ]; then
+          echo "XML file exists"
+          ls -la ph_holidays.xml
+          echo "Content preview:"
+          head -20 ph_holidays.xml
+        else
+          echo "XML file not found!"
+          exit 1
+        fi
+        
+    - name: Commit and push changes
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        # Add the XML file
+        git add ph_holidays.xml
+        
+        # Check if there are changes to commit
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "Auto-update Philippines holidays data - $(date +'%Y-%m-%d %H:%M:%S UTC')"
+          git push
+        fi
+        
+    - name: Upload XML as artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ph-holidays-xml
+        path: ph_holidays.xml
+        retention-days: 30
