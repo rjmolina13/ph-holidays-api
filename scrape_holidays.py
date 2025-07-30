@@ -5,123 +5,84 @@ Scrapes holiday data from publicholidays.ph and converts to MM-DD format
 """
 
 import os
-# SSL workaround - set CURL_CA_BUNDLE to empty to bypass certificate issues
-os.environ['CURL_CA_BUNDLE'] = ''
-
-import requests
-from bs4 import BeautifulSoup
-import xml.etree.ElementTree as ET
-from datetime import datetime
 import sys
 import time
 import random
-import itertools
-import urllib3
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
+from datetime import datetime
+import xml.etree.ElementTree as ET
+from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException, WebDriverException
 
-def get_proxy_list():
+def setup_webdriver():
     """
-    Return list of proxy servers
+    Setup Chrome WebDriver with headless options
     """
-    return [
-        {'http': 'http://39.102.214.152:9080', 'https': 'http://39.102.214.152:9080'},
-        {'http': 'http://47.119.22.156:8080', 'https': 'http://47.119.22.156:8080'},
-        {'http': 'http://8.213.129.20:79', 'https': 'http://8.213.129.20:79'},
-        {'http': 'http://72.10.164.178:32153', 'https': 'http://72.10.164.178:32153'},
-        {'http': 'http://47.56.110.204:8989', 'https': 'http://47.56.110.204:8989'},
-        {'http': 'http://47.97.121.189:1000', 'https': 'http://47.97.121.189:1000'},
-        {'http': 'http://77.238.103.98:8080', 'https': 'http://77.238.103.98:8080'}
-    ]
+    chrome_options = Options()
+    chrome_options.add_argument('--headless')
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument('--disable-gpu')
+    chrome_options.add_argument('--window-size=1920,1080')
+    chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+    chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    chrome_options.add_experimental_option('useAutomationExtension', False)
+    
+    try:
+        driver = webdriver.Chrome(options=chrome_options)
+        driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+        return driver
+    except Exception as e:
+        print(f"Error setting up Chrome WebDriver: {e}")
+        return None
 
 def scrape_holidays(url):
     """
-    Scrape holidays from the given URL with enhanced anti-detection measures and proxy support
+    Scrape holidays from the given URL using Selenium WebDriver
     """
-    # Disable SSL warnings for proxy connections
-    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    driver = setup_webdriver()
+    if not driver:
+        print("Failed to setup WebDriver")
+        return []
     
-    # List of user agents to rotate
-    user_agents = [
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:121.0) Gecko/20100101 Firefox/121.0'
-    ]
-    
-    # Get proxy list
-    proxies = get_proxy_list()
-    
-    # Try without proxy first, then with proxies
-    proxy_options = [None] + proxies
-    
-    for proxy_index, proxy in enumerate(proxy_options):
-        try:
-            # Create a new session for each attempt
-            session = requests.Session()
-            
-            # Configure retry strategy
-            retry_strategy = Retry(
-                total=2,
-                backoff_factor=1,
-                status_forcelist=[429, 500, 502, 503, 504],
-            )
-            adapter = HTTPAdapter(max_retries=retry_strategy)
-            session.mount("http://", adapter)
-            session.mount("https://", adapter)
-            
-            # Enhanced headers to mimic real browser behavior
-            headers = {
-                'User-Agent': random.choice(user_agents),
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'DNT': '1',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Sec-Fetch-User': '?1',
-                'Cache-Control': 'max-age=0',
-                'Referer': 'https://www.google.com/'
-            }
-            
-            session.headers.update(headers)
-            
-            # Disable SSL verification for all connections to avoid certificate issues
-            session.verify = False
-            
-            if proxy:
-                session.proxies.update(proxy)
-                print(f"Trying with proxy: {proxy['http']}")
-            else:
-                print("Trying without proxy...")
-            
-            # Add random delay to avoid being flagged as bot
-            delay = random.uniform(2, 5)
-            print(f"Waiting {delay:.1f} seconds before request...")
-            time.sleep(delay)
-            
-            # Make the request with shorter timeout for proxy attempts
-            timeout = 20 if proxy else 30
-            response = session.get(url, timeout=timeout, allow_redirects=True)
-            response.raise_for_status()
-            
-            print(f"Successfully connected {'with proxy' if proxy else 'without proxy'}!")
-            break
-            
-        except requests.exceptions.RequestException as e:
-            print(f"Attempt {proxy_index + 1} failed: {e}")
-            if proxy_index == len(proxy_options) - 1:
-                print("All connection attempts failed")
-                return []
-            continue
+    try:
+        print("Loading page with WebDriver...")
+        
+        # Add random delay to avoid being flagged as bot
+        delay = random.uniform(2, 4)
+        print(f"Waiting {delay:.1f} seconds before request...")
+        time.sleep(delay)
+        
+        # Load the page
+        driver.get(url)
+        
+        # Wait for the page to load completely
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CLASS_NAME, "publicholidays"))
+        )
+        
+        print("Successfully loaded page with WebDriver!")
+        
+        # Get page source and parse with BeautifulSoup
+        page_source = driver.page_source
+        
+    except TimeoutException:
+        print("Timeout waiting for page to load")
+        return []
+    except WebDriverException as e:
+        print(f"WebDriver error: {e}")
+        return []
+    finally:
+        driver.quit()
     
     try:
         
-        soup = BeautifulSoup(response.content, 'html.parser')
+        soup = BeautifulSoup(page_source, 'html.parser')
         
         # Find the holidays table
         table = soup.find('table', class_='publicholidays')
