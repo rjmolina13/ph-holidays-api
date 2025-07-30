@@ -20,7 +20,7 @@ jobs:
       uses: actions/checkout@v4
       
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.11'
         
@@ -63,10 +63,13 @@ jobs:
           git commit -m "Auto-update Philippines holidays data - $(date +'%Y-%m-%d %H:%M:%S UTC')"
           git push
         fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
     - name: Upload XML as artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ph-holidays-xml
         path: ph_holidays.xml
         retention-days: 30
+        if-no-files-found: warn

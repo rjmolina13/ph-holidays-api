@@ -52,4 +52,5 @@ Thumbs.db
 *.temp
 
 # Keep the generated XML file
-# ph_holidays.xml should be committed as it's the API output
+ph_holidays.xml should be committed as it's the API output
+*.html
