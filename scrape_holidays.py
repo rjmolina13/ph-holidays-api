@@ -4,12 +4,15 @@ Philippines Public Holidays Scraper
 Scrapes holiday data from publicholidays.ph and converts to MM-DD format
 """
 
+import os
+# SSL workaround - set CURL_CA_BUNDLE to empty to bypass certificate issues
+os.environ['CURL_CA_BUNDLE'] = ''
+
 import requests
 from bs4 import BeautifulSoup
 import xml.etree.ElementTree as ET
 from datetime import datetime
 import sys
-import os
 import time
 import random
 import itertools
