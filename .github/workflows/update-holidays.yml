@@ -34,7 +34,9 @@ jobs:
         HOLIDAYS_URL: 'https://publicholidays.ph/2025-dates/'
         OUTPUT_FILE: 'ph_holidays.xml'
       run: |
+        echo "Starting holiday data scraping..."
         python scrape_holidays.py
+        echo "Scraping completed"
         
     - name: Check if XML file was created/updated
       run: |

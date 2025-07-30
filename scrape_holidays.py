@@ -10,24 +10,61 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 import sys
 import os
+import time
+import random
 
 def scrape_holidays(url):
     """
-    Scrape holidays from the given URL
+    Scrape holidays from the given URL with enhanced anti-detection
     """
     try:
-        # Add headers to avoid being blocked
+        # Create a session for better connection handling
+        session = requests.Session()
+        
+        # Randomize user agents to avoid detection
+        user_agents = [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:121.0) Gecko/20100101 Firefox/121.0'
+        ]
+        
+        # Enhanced headers to mimic real browser behavior
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate',
+            'User-Agent': random.choice(user_agents),
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'DNT': '1',
             'Connection': 'keep-alive',
             'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
+            'Cache-Control': 'max-age=0'
         }
         
-        response = requests.get(url, headers=headers, timeout=30)
-        response.raise_for_status()
+        session.headers.update(headers)
+        
+        # Add random delay to avoid being flagged as bot
+        delay = random.uniform(1, 3)
+        print(f"Waiting {delay:.1f} seconds before request...")
+        time.sleep(delay)
+        
+        # Make the request with retries
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = session.get(url, timeout=30)
+                response.raise_for_status()
+                break
+            except requests.exceptions.RequestException as e:
+                if attempt == max_retries - 1:
+                    raise e
+                print(f"Attempt {attempt + 1} failed, retrying in {2 ** attempt} seconds...")
+                time.sleep(2 ** attempt)
         
         soup = BeautifulSoup(response.content, 'html.parser')
         

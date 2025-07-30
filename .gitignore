@@ -51,6 +51,6 @@ Thumbs.db
 *.tmp
 *.temp
 
-# Keep the generated XML file
 ph_holidays.xml should be committed as it's the API output
 *.html
+ignore/
