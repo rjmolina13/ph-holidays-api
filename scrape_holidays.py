@@ -32,12 +32,20 @@ def setup_webdriver():
         '--disable-dev-shm-usage',
         '--disable-gpu',
         '--window-size=1920,1080',
-        '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
         '--disable-blink-features=AutomationControlled',
         '--disable-extensions',
         '--disable-plugins',
         '--disable-images',
-        '--remote-debugging-port=9222'
+        '--remote-debugging-port=9222',
+        '--disable-web-security',
+        '--disable-features=VizDisplayCompositor',
+        '--ignore-certificate-errors',
+        '--ignore-ssl-errors',
+        '--ignore-certificate-errors-spki-list',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding'
     ]
     
     print(f"Adding {len(options_list)} Chrome options...")
@@ -92,9 +100,27 @@ def scrape_holidays(url):
         load_time = time.time() - start_time
         print(f"✅ Page navigation completed in {load_time:.2f} seconds")
         
+        # Check if we hit Cloudflare protection and wait longer if needed
+        print("\n🛡️  Checking for Cloudflare protection...")
+        page_title = driver.title
+        print(f"📄 Initial page title: {page_title}")
+        
+        if "just a moment" in page_title.lower() or "checking" in page_title.lower():
+            print("⚠️  Detected Cloudflare protection, waiting longer...")
+            print("⏱️  Waiting up to 60 seconds for Cloudflare to complete...")
+            
+            # Wait for Cloudflare to finish
+            cloudflare_wait = WebDriverWait(driver, 60)
+            try:
+                # Wait for title to change from "Just a moment..."
+                cloudflare_wait.until(lambda d: "just a moment" not in d.title.lower())
+                print(f"✅ Cloudflare check completed! New title: {driver.title}")
+            except TimeoutException:
+                print("❌ Cloudflare protection timeout - continuing anyway")
+        
         # Wait for the page to load completely with increased timeout
         print("\n🔍 Waiting for page elements to load...")
-        wait = WebDriverWait(driver, 30)
+        wait = WebDriverWait(driver, 45)
         
         try:
             print("  Searching for table with class 'publicholidays'...")
@@ -111,8 +137,8 @@ def scrape_holidays(url):
                 print("  Waiting for page body to load...")
                 wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
                 print("  ✅ Page body loaded (final fallback)")
-                print("  ⏱️  Giving extra 5 seconds for dynamic content...")
-                time.sleep(5)
+                print("  ⏱️  Giving extra 10 seconds for dynamic content...")
+                time.sleep(10)
         
         print("\n📋 Successfully loaded page with WebDriver!")
         
