@@ -22,112 +22,172 @@ def setup_webdriver():
     """
     Setup Chrome WebDriver with headless options
     """
+    print("Setting up Chrome WebDriver...")
     chrome_options = Options()
-    chrome_options.add_argument('--headless')
-    chrome_options.add_argument('--no-sandbox')
-    chrome_options.add_argument('--disable-dev-shm-usage')
-    chrome_options.add_argument('--disable-gpu')
-    chrome_options.add_argument('--window-size=1920,1080')
-    chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
-    chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+    
+    # Add Chrome arguments with verbose logging
+    options_list = [
+        '--headless',
+        '--no-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--window-size=1920,1080',
+        '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        '--disable-blink-features=AutomationControlled',
+        '--disable-extensions',
+        '--disable-plugins',
+        '--disable-images',
+        '--remote-debugging-port=9222'
+    ]
+    
+    print(f"Adding {len(options_list)} Chrome options...")
+    for option in options_list:
+        chrome_options.add_argument(option)
+        print(f"  Added: {option}")
+    
+    print("Adding experimental options...")
     chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
     chrome_options.add_experimental_option('useAutomationExtension', False)
+    print("  Added: excludeSwitches and useAutomationExtension")
     
     try:
+        print("Initializing Chrome WebDriver...")
         driver = webdriver.Chrome(options=chrome_options)
+        print("Chrome WebDriver initialized successfully")
+        
+        print("Executing anti-detection script...")
         driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+        print("Anti-detection script executed")
+        
         return driver
     except Exception as e:
         print(f"Error setting up Chrome WebDriver: {e}")
+        print(f"Exception type: {type(e).__name__}")
         return None
 
 def scrape_holidays(url):
     """
     Scrape holidays from the given URL using Selenium WebDriver
     """
+    print(f"\n=== Starting holiday scraping process ===")
+    print(f"Target URL: {url}")
+    
     driver = setup_webdriver()
     if not driver:
-        print("Failed to setup WebDriver")
+        print("❌ Failed to setup WebDriver")
         return []
     
     try:
-        print("Loading page with WebDriver...")
+        print("\n📄 Loading page with WebDriver...")
         
         # Add random delay to avoid being flagged as bot
         delay = random.uniform(2, 4)
-        print(f"Waiting {delay:.1f} seconds before request...")
+        print(f"⏱️  Waiting {delay:.1f} seconds before request...")
         time.sleep(delay)
         
         # Load the page
+        print(f"🌐 Navigating to: {url}")
+        start_time = time.time()
         driver.get(url)
+        load_time = time.time() - start_time
+        print(f"✅ Page navigation completed in {load_time:.2f} seconds")
         
-        # Wait for the page to load completely
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CLASS_NAME, "publicholidays"))
-        )
+        # Wait for the page to load completely with increased timeout
+        print("\n🔍 Waiting for page elements to load...")
+        wait = WebDriverWait(driver, 30)
         
-        print("Successfully loaded page with WebDriver!")
+        try:
+            print("  Searching for table with class 'publicholidays'...")
+            wait.until(EC.presence_of_element_located((By.CLASS_NAME, "publicholidays")))
+            print("  ✅ Found 'publicholidays' table!")
+        except TimeoutException:
+            print("  ⚠️  'publicholidays' table not found, trying fallback...")
+            try:
+                print("  Searching for any table element...")
+                wait.until(EC.presence_of_element_located((By.TAG_NAME, "table")))
+                print("  ✅ Found table element (fallback)")
+            except TimeoutException:
+                print("  ⚠️  No table found, trying final fallback...")
+                print("  Waiting for page body to load...")
+                wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+                print("  ✅ Page body loaded (final fallback)")
+                print("  ⏱️  Giving extra 5 seconds for dynamic content...")
+                time.sleep(5)
+        
+        print("\n📋 Successfully loaded page with WebDriver!")
         
         # Get page source and parse with BeautifulSoup
+        print("📄 Extracting page source...")
         page_source = driver.page_source
+        page_size = len(page_source)
+        print(f"✅ Page source extracted ({page_size:,} characters)")
         
-    except TimeoutException:
-        print("Timeout waiting for page to load")
+    except TimeoutException as e:
+        print(f"❌ Timeout waiting for page to load: {e}")
         return []
     except WebDriverException as e:
-        print(f"WebDriver error: {e}")
+        print(f"❌ WebDriver error: {e}")
+        print(f"Exception type: {type(e).__name__}")
         return []
     finally:
+        print("🔄 Closing WebDriver...")
         driver.quit()
+        print("✅ WebDriver closed")
     
-    try:
-        
-        soup = BeautifulSoup(page_source, 'html.parser')
-        
-        # Find the holidays table
-        table = soup.find('table', class_='publicholidays')
-        if not table:
-            raise Exception("Could not find holidays table")
-        
-        holidays = []
-        rows = table.find('tbody').find_all('tr')
-        
-        for row in rows:
-            cells = row.find_all('td')
-            if len(cells) >= 3 and not row.find('td', class_='adunit'):
-                date_text = cells[0].get_text().strip()
-                day_text = cells[1].get_text().strip()
-                holiday_name = cells[2].get_text().strip()
-                
-                # Skip empty or invalid rows
-                if not date_text or not holiday_name:
-                    continue
-                    
-                # Parse date (format: "1 Jan", "25 Dec", etc.)
-                try:
-                    # Add current year for parsing
-                    current_year = datetime.now().year
-                    date_with_year = f"{date_text} {current_year}"
-                    parsed_date = datetime.strptime(date_with_year, "%d %b %Y")
-                    
-                    # Convert to MM-DD format
-                    mm_dd_format = parsed_date.strftime("%m-%d")
-                    
-                    holidays.append({
-                        'date': date_text,
-                        'day': day_text,
-                        'name': holiday_name,
-                        'mm_dd': mm_dd_format
-                    })
-                except ValueError as e:
-                    print(f"Warning: Could not parse date '{date_text}': {e}")
-                    continue
-        
-        return holidays
-        
-    except Exception as e:
-        print(f"Error scraping holidays: {e}")
+    print("🍲 Parsing page content with BeautifulSoup...")
+    soup = BeautifulSoup(page_source, 'html.parser')
+    
+    print("🔍 Looking for holidays table...")
+    # Find the holidays table
+    table = soup.find('table', class_='publicholidays')
+    if not table:
+        print("❌ Could not find holidays table with class 'publicholidays'")
         return []
+    
+    print("✅ Found holidays table, extracting data...")
+    holidays = []
+    rows = table.find('tbody').find_all('tr')
+    print(f"📊 Processing {len(rows)} table rows...")
+    
+    for i, row in enumerate(rows, 1):
+        cells = row.find_all('td')
+        if len(cells) >= 3 and not row.find('td', class_='adunit'):
+            date_text = cells[0].get_text().strip()
+            day_text = cells[1].get_text().strip()
+            holiday_name = cells[2].get_text().strip()
+            
+            print(f"  Row {i}: Processing '{holiday_name}' on {date_text}")
+            
+            # Skip empty or invalid rows
+            if not date_text or not holiday_name:
+                print(f"    ⚠️  Skipping row {i}: empty date or name")
+                continue
+                
+            # Parse date (format: "1 Jan", "25 Dec", etc.)
+            try:
+                # Add current year for parsing
+                current_year = datetime.now().year
+                date_with_year = f"{date_text} {current_year}"
+                parsed_date = datetime.strptime(date_with_year, "%d %b %Y")
+                
+                # Convert to MM-DD format
+                mm_dd_format = parsed_date.strftime("%m-%d")
+                
+                holidays.append({
+                    'date': date_text,
+                    'day': day_text,
+                    'name': holiday_name,
+                    'mm_dd': mm_dd_format
+                })
+                print(f"    ✅ Added holiday: {holiday_name} ({mm_dd_format})")
+            except ValueError as e:
+                print(f"    ❌ Warning: Could not parse date '{date_text}': {e}")
+                continue
+        else:
+            print(f"  Row {i}: Skipping (insufficient cells or ad unit)")
+    
+    print(f"\n🎉 Successfully extracted {len(holidays)} holidays!")
+    return holidays
 
 def create_xml(holidays, output_file):
     """
