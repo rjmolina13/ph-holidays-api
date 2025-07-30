@@ -138,11 +138,48 @@ def scrape_holidays(url):
     soup = BeautifulSoup(page_source, 'html.parser')
     
     print("🔍 Looking for holidays table...")
+    
+    # Debug: Print page title and check for any tables
+    title = soup.find('title')
+    print(f"📄 Page title: {title.get_text() if title else 'No title found'}")
+    
+    all_tables = soup.find_all('table')
+    print(f"📊 Found {len(all_tables)} table(s) on the page")
+    
+    for i, table in enumerate(all_tables):
+        classes = table.get('class', [])
+        print(f"  Table {i+1}: classes = {classes}")
+        if classes:
+            for cls in classes:
+                print(f"    - {cls}")
+    
     # Find the holidays table
     table = soup.find('table', class_='publicholidays')
     if not table:
         print("❌ Could not find holidays table with class 'publicholidays'")
-        return []
+        
+        # Try alternative approaches
+        print("🔍 Trying alternative table selection methods...")
+        
+        # Try finding table by content
+        for i, alt_table in enumerate(all_tables):
+            rows = alt_table.find_all('tr')
+            if len(rows) > 5:  # Likely a data table
+                print(f"  Checking table {i+1} with {len(rows)} rows...")
+                first_row = rows[0] if rows else None
+                if first_row:
+                    cells = first_row.find_all(['th', 'td'])
+                    cell_texts = [cell.get_text().strip() for cell in cells]
+                    print(f"    First row cells: {cell_texts}")
+                    
+                    # Check if this looks like a holidays table
+                    if any('date' in text.lower() or 'holiday' in text.lower() or 'day' in text.lower() for text in cell_texts):
+                        print(f"    ✅ Table {i+1} looks like a holidays table, using it!")
+                        table = alt_table
+                        break
+        
+        if not table:
+            return []
     
     print("✅ Found holidays table, extracting data...")
     holidays = []
